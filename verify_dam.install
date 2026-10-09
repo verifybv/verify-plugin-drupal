@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for the Verify DAM module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function verify_dam_uninstall(): void {
+  // Remove every stored per-user API key.
+  \Drupal::service('user.data')->delete('verify_dam');
+  \Drupal::keyValue('verify_dam.index')->deleteAll();
+  // Imported files/media are kept; only the bookkeeping is removed.
+  \Drupal::keyValue('verify_dam.imported')->deleteAll();
+}

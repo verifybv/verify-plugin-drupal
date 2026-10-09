@@ -1,0 +1,46 @@
+/* Connect to Verify page. */
+
+/* Less space between the page title and the form (Olivero adds ~106px).
+   Scoped with :has() so only this page is affected. */
+.main-content__container:has(.verify-dam-connect-form) .block-page-title-block {
+  margin-block-end: 1rem;
+}
+.main-content__container:has(.verify-dam-connect-form) .page-title {
+  margin-block-end: 0.5rem;
+}
+
+.verify-connect__intro {
+  margin: 0 0 0.6rem;
+}
+
+/* Key bar: blurred filler + the real last 4 characters. */
+.verify-key {
+  display: flex;
+  align-items: center;
+  max-width: 32rem;
+  margin: 0 0 1.5rem;
+  padding: 0.7rem 1rem;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  background: #f2f3f6;
+  border: 1px solid #d9dce3;
+  border-radius: 6px;
+}
+.verify-key__hidden {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: #5b6170;
+  filter: blur(4px);
+  user-select: none;
+  pointer-events: none;
+}
+.verify-key__visible {
+  flex: 0 0 auto;
+  padding-inline-start: 0.15em;
+  color: #1f2433;
+  font-weight: 700;
+}

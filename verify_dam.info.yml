@@ -1,0 +1,8 @@
+name: Verify DAM
+type: module
+description: 'Browse and search your Verify DAM asset library from inside Drupal.'
+package: Verify
+core_version_requirement: ^10.3 || ^11
+configure: verify_dam.settings
+dependencies:
+  - drupal:file

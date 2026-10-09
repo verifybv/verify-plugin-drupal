@@ -1,0 +1,28 @@
+<?php
+
+/**
+ * @file
+ * Hook implementations for the Verify DAM module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_help().
+ */
+function verify_dam_help(string $route_name, RouteMatchInterface $route_match): ?string {
+  if ($route_name !== 'help.page.verify_dam') {
+    return NULL;
+  }
+  $output = '<h2>' . t('About') . '</h2>';
+  $output .= '<p>' . t('Verify DAM lets editors browse and search their <a href=":verify">Verify</a> asset library inside Drupal and copy assets into Drupal files (and Media, when enabled).', [':verify' => 'https://joinverify.com']) . '</p>';
+  $output .= '<h2>' . t('Uses') . '</h2>';
+  $output .= '<dl>';
+  $output .= '<dt>' . t('Connecting') . '</dt><dd>' . t('Each user enters their own Verify API key once on the <a href=":connect">Connect to Verify</a> page.', [':connect' => Url::fromRoute('verify_dam.connect')->toString()]) . '</dd>';
+  $output .= '<dt>' . t('Browsing and searching') . '</dt><dd>' . t('The <a href=":library">Verify DAM library</a> shows assets newest first and refreshes automatically. Search matches file names first, then uses Verify\'s AI search.', [':library' => Url::fromRoute('verify_dam.library')->toString()]) . '</dd>';
+  $output .= '<dt>' . t('Copying assets') . '</dt><dd>' . t('Click an asset to download its original into Drupal. Copied assets are marked "In Drupal".') . '</dd>';
+  $output .= '<dt>' . t('Settings') . '</dt><dd>' . t('Configure the API URL, refresh interval and filters on the <a href=":settings">settings page</a>.', [':settings' => Url::fromRoute('verify_dam.settings')->toString()]) . '</dd>';
+  $output .= '</dl>';
+  return $output;
+}

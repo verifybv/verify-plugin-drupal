@@ -1,0 +1,49 @@
+verify_dam.library:
+  path: '/verify'
+  defaults:
+    _controller: '\Drupal\verify_dam\Controller\VerifyController::library'
+    _title: 'Verify DAM'
+  requirements:
+    _permission: 'use verify dam'
+  options:
+    no_cache: TRUE
+
+verify_dam.assets:
+  path: '/verify/assets'
+  defaults:
+    _controller: '\Drupal\verify_dam\Controller\VerifyController::assets'
+  methods: [GET]
+  requirements:
+    _permission: 'use verify dam'
+  options:
+    no_cache: TRUE
+
+verify_dam.connect:
+  path: '/verify/connect'
+  defaults:
+    _form: '\Drupal\verify_dam\Form\ConnectForm'
+    _title: 'Connect to Verify'
+  requirements:
+    _permission: 'use verify dam'
+  options:
+    no_cache: TRUE
+
+verify_dam.settings:
+  path: '/admin/config/media/verify'
+  defaults:
+    _form: '\Drupal\verify_dam\Form\SettingsForm'
+    _title: 'Verify DAM settings'
+  requirements:
+    _permission: 'administer verify'
+
+verify_dam.import:
+  path: '/verify/import/{asset_id}'
+  defaults:
+    _controller: '\Drupal\verify_dam\Controller\VerifyController::import'
+  methods: [POST]
+  requirements:
+    _permission: 'import verify assets'
+    _csrf_request_header_token: 'TRUE'
+    asset_id: '[A-Za-z0-9_-]+'
+  options:
+    no_cache: TRUE

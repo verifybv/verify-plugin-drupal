@@ -1,0 +1,16 @@
+verify_dam.settings:
+  type: config_object
+  label: 'Verify DAM settings'
+  mapping:
+    base_url:
+      type: uri
+      label: 'Verify API base URL'
+    poll_interval:
+      type: integer
+      label: 'Live refresh interval (seconds)'
+    max_items:
+      type: integer
+      label: 'Maximum assets shown'
+    verified_only:
+      type: boolean
+      label: 'Only show verified assets'

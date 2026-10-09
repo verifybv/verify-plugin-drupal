@@ -1,0 +1,13 @@
+# Top-level item in the admin menu / Drupal 11 navigation sidebar.
+verify_dam.library:
+  title: 'Verify DAM'
+  description: 'Browse, search and copy assets from the Verify DAM.'
+  route_name: verify_dam.library
+  parent: system.admin
+  weight: -7
+
+verify_dam.settings:
+  title: 'Verify DAM'
+  description: 'API endpoint, refresh interval and display filter for the Verify DAM library.'
+  route_name: verify_dam.settings
+  parent: system.admin_config_media

@@ -1,0 +1,11 @@
+use verify dam:
+  title: 'Use the Verify DAM library'
+  description: 'Connect a personal Verify API key and browse/search the asset library.'
+
+administer verify:
+  title: 'Administer Verify DAM settings'
+  restrict access: true
+
+import verify assets:
+  title: 'Copy Verify assets into Drupal'
+  description: 'Download assets from Verify into Drupal files (and Media, if enabled).'

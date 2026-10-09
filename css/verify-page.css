@@ -1,0 +1,149 @@
+/* Verify DAM library page: page layout + toolbar. Inlined into the page so
+   changes apply immediately, independent of Drupal's cached libraries. */
+
+/* Hide the "Verify DAM" page title visually (the logo replaces it), but keep
+   it for screen readers. Scoped with :has() to this page only. */
+.main-content__container:has(.verify-library) .block-page-title-block {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+  margin: 0 !important;
+}
+
+/*
+ * Toolbar: [logo] [search input][🔍]  ...............  [Settings]
+ *          status line (count · updated), aligned with the logo
+ * Selectors are scoped under .verify-library so theme styles for inputs and
+ * buttons can't change sizes or make the input overlap the button.
+ */
+.verify-library .verify-library__toolbar {
+  --verify-control-height: 2.5rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "logo   search settings"
+    "status status status";
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-block-end: 1.5rem;
+}
+.verify-library .verify-library__search-form {
+  grid-area: search;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  max-width: 40rem;
+  margin: 0;
+  padding: 0;
+}
+.verify-library .verify-library__search {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  height: var(--verify-control-height);
+  min-height: 0;
+  max-height: var(--verify-control-height);
+  margin: 0;
+  padding: 0 0.9rem;
+  font: inherit;
+  font-size: 1rem;
+  line-height: normal;
+  color: #1f2433;
+  background: #fff;
+  border: 1px solid #c9ccd4;
+  border-radius: 6px;
+  box-shadow: none;
+  box-sizing: border-box;
+}
+.verify-library .verify-library__search:focus {
+  border-color: #3b6cf6;
+  outline: 2px solid rgba(59, 108, 246, 0.35);
+  outline-offset: 0;
+}
+.verify-library .verify-library__btn {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: auto;
+  height: var(--verify-control-height);
+  min-height: 0;
+  max-height: var(--verify-control-height);
+  margin: 0;
+  padding: 0 1.1rem;
+  color: #1f2433;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid #c9ccd4;
+  border-radius: 6px;
+  box-shadow: none;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.verify-library .verify-library__btn:hover {
+  color: #1f2433;
+  text-decoration: none;
+  background: #f2f3f6;
+}
+.verify-library .verify-library__btn:focus-visible {
+  outline: 2px solid #3b6cf6;
+  outline-offset: 2px;
+}
+.verify-library .verify-library__btn--primary,
+.verify-library .verify-library__btn--primary:hover {
+  color: #fff;
+  background: #3b6cf6;
+  border-color: #3b6cf6;
+}
+.verify-library .verify-library__btn--primary:hover {
+  background: #2f5ad6;
+}
+.verify-library .verify-library__btn--icon {
+  width: var(--verify-control-height);
+  padding: 0;
+}
+.verify-library .verify-library__logo {
+  grid-area: logo;
+  display: block;
+  width: auto;
+  max-width: none;
+  height: calc(var(--verify-control-height) * 0.7);
+  margin: 0;
+}
+.verify-library .verify-library__settings {
+  grid-area: settings;
+  justify-self: end;
+}
+.verify-library .verify-library__status {
+  grid-area: status;
+  min-width: 0;
+  overflow: hidden;
+  color: #5b6170;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 36rem) {
+  .verify-library .verify-library__toolbar {
+    grid-template-areas:
+      "logo   logo   settings"
+      "search search search"
+      "status status status";
+  }
+  .verify-library .verify-library__search-form {
+    max-width: none;
+  }
+}
+

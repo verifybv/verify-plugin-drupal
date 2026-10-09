@@ -1,0 +1,4 @@
+base_url: 'https://verify-api-gateway-9jozroz9.ew.gateway.dev'
+poll_interval: 15
+max_items: 200
+verified_only: true
