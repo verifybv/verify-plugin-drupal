@@ -8,3 +8,6 @@ Thumbs.db
 # Dependencies
 /vendor/
 /node_modules/
+
+# Files queued for deletion (not part of the module)
+/_delete/

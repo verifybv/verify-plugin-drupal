@@ -16,15 +16,36 @@ inside Drupal 10.3+ / 11.
 
 ## Installation
 
-With Composer:
+Add the Verify repository to your Drupal project's `composer.json`:
+
+```json
+"repositories": [
+    {
+        "type": "vcs",
+        "url": "https://github.com/verifybv/verify-plugin-drupal"
+    }
+]
+```
+
+Then install and enable the module:
 
 ```
-composer require drupal/verify_dam
-drush en verify_dam
+composer require joinverify/verify_dam
+vendor/bin/drush en verify_dam -y
+vendor/bin/drush cr
 ```
 
-Or manually: place this folder at `web/modules/custom/verify_dam` and enable
-**Verify DAM** under *Extend*.
+If the repository is private, first give Composer a GitHub token that has
+read access to it (provided by Verify):
+
+```
+composer config --global github-oauth.github.com <token>
+```
+
+Updating later: `composer update joinverify/verify_dam`.
+
+Without Composer: download a release zip, place it at
+`web/modules/custom/verify_dam` and enable **Verify DAM** under *Extend*.
 
 Then grant permissions under *People → Permissions*:
 
@@ -75,4 +96,8 @@ Copied files are stored in `public://verify/YYYY-MM/` and listed under
 
 ## License
 
-GPL-2.0-or-later. See `LICENSE.txt`.
+Copyright © Verify. All rights reserved.
+
+This module is provided to Verify customers for use with their Verify
+subscription, under the terms of their agreement with Verify. No other rights
+are granted.

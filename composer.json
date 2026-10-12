@@ -1,8 +1,8 @@
 {
-    "name": "drupal/verify_dam",
+    "name": "joinverify/verify_dam",
     "description": "Browse, search and copy assets from the Verify DAM inside Drupal.",
     "type": "drupal-module",
-    "license": "GPL-2.0-or-later",
+    "license": "proprietary",
     "homepage": "https://joinverify.com",
     "support": {
         "email": "info@joinverify.com"
