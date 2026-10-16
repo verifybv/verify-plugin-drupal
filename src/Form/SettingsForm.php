@@ -39,18 +39,13 @@ class SettingsForm extends ConfigFormBase {
     $form['max_items'] = [
       '#type' => 'number',
       '#title' => $this->t('Maximum assets shown'),
+      '#description' => $this->t('Newest assets shown in the library, and maximum search results (1–100).'),
       '#min' => 1,
-      '#max' => 2000,
+      '#max' => 100,
       '#default_value' => $config->get('max_items'),
       '#required' => TRUE,
     ];
 
-    $form['verified_only'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Only show verified assets'),
-      '#description' => $this->t('Hide assets whose Verify status is not VERIFIED (e.g. uploaded, awaiting approval or declined).'),
-      '#default_value' => $config->get('verified_only') ?? TRUE,
-    ];
 
     return parent::buildForm($form, $form_state);
   }
@@ -60,7 +55,6 @@ class SettingsForm extends ConfigFormBase {
       ->set('base_url', rtrim((string) $form_state->getValue('base_url'), '/'))
       ->set('poll_interval', (int) $form_state->getValue('poll_interval'))
       ->set('max_items', (int) $form_state->getValue('max_items'))
-      ->set('verified_only', (bool) $form_state->getValue('verified_only'))
       ->save();
     parent::submitForm($form, $form_state);
   }

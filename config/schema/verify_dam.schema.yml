@@ -11,6 +11,3 @@ verify_dam.settings:
     max_items:
       type: integer
       label: 'Maximum assets shown'
-    verified_only:
-      type: boolean
-      label: 'Only show verified assets'

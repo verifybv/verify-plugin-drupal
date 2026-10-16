@@ -57,6 +57,13 @@ class VerifyController extends ControllerBase {
     <button type="submit" class="verify-library__btn verify-library__btn--primary verify-library__btn--icon" aria-label="{{ search }}" title="{{ search }}">
       <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="16.65" y1="16.65" x2="21" y2="21"/></svg>
     </button>
+    <select class="verify-library__type" aria-label="{{ type_label }}">
+      <option value="">{{ type_all }}</option>
+      <option value="image">{{ type_image }}</option>
+      <option value="video">{{ type_video }}</option>
+      <option value="audio">{{ type_audio }}</option>
+      <option value="pdf">{{ type_pdf }}</option>
+    </select>
   </form>
   <span class="verify-library__status" aria-live="polite">{{ loading }}</span>
   <a href="{{ settings_url }}" class="verify-library__btn verify-library__settings" title="{{ settings_title }}">
@@ -68,6 +75,12 @@ class VerifyController extends ControllerBase {
           'placeholder' => $this->t('Search assets…'),
           'label' => $this->t('Search assets'),
           'search' => $this->t('Search'),
+          'type_label' => $this->t('File type'),
+          'type_all' => $this->t('All types'),
+          'type_image' => $this->t('Images'),
+          'type_video' => $this->t('Videos'),
+          'type_audio' => $this->t('Audio'),
+          'type_pdf' => $this->t('PDFs'),
           'loading' => $this->t('Loading…'),
           'settings' => $this->t('Settings'),
           'settings_title' => $this->t('Verify API key and connection'),
@@ -108,9 +121,10 @@ class VerifyController extends ControllerBase {
    */
   public function assets(Request $request): JsonResponse {
     $query = mb_substr(trim((string) $request->query->get('q', '')), 0, 200);
+    $type = (string) $request->query->get('type', '');
 
     try {
-      $assets = $this->client->search($query);
+      $assets = $this->client->search($query, $type !== '' ? $type : NULL);
       $imported = array_flip($this->importer->importedIds());
       foreach ($assets as &$asset) {
         $asset['imported'] = isset($imported[$asset['id']]);

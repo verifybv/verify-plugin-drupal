@@ -93,6 +93,8 @@
         const status = root.querySelector('.verify-library__status');
 
         let query = '';
+        let type = '';
+        const typeSelect = root.querySelector('.verify-library__type');
         let knownIds = null; // Set of ids for the current query; null = first load.
         let inFlight = null;
         let timer = null;
@@ -193,10 +195,11 @@
           if (!silent) setStatus(Drupal.t('Loading…'));
 
           const forQuery = query;
+          const forType = type;
           let res;
           let data;
           try {
-            res = await fetch(`${settings.endpoint}?q=${encodeURIComponent(forQuery)}`, {
+            res = await fetch(`${settings.endpoint}?q=${encodeURIComponent(forQuery)}&type=${encodeURIComponent(forType)}`, {
               credentials: 'same-origin',
               headers: { Accept: 'application/json' },
               signal: controller.signal,
@@ -211,7 +214,7 @@
           finally {
             if (inFlight === controller) inFlight = null;
           }
-          if (forQuery !== query) return;
+          if (forQuery !== query || forType !== type) return;
           if (!res.ok) {
             showError(data || {});
             return;
@@ -227,7 +230,7 @@
           grid.querySelectorAll('.verify-asset').forEach((c) => existing.set(c.dataset.id, c));
           grid.replaceChildren();
           if (!assets.length) {
-            grid.appendChild(el('p', 'verify-library__empty', query ? Drupal.t('No assets match “@q”.', { '@q': query }) : Drupal.t('Your Verify library is empty.')));
+            grid.appendChild(el('p', 'verify-library__empty', query ? Drupal.t('No assets match “@q”.', { '@q': query }) : (type ? Drupal.t('No assets of this type.') : Drupal.t('Your Verify library is empty.'))));
           }
           else {
             const frag = document.createDocumentFragment();
@@ -266,6 +269,14 @@
           knownIds = null; // Don't flag results of a new search as "new".
           load();
         }
+        if (typeSelect) {
+          typeSelect.addEventListener('change', () => {
+            type = typeSelect.value;
+            knownIds = null; // Don't flag results of a new filter as "new".
+            load();
+          });
+        }
+
         const form = root.querySelector('.verify-library__search-form');
         if (form) {
           form.addEventListener('submit', (e) => {

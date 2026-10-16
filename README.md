@@ -11,8 +11,8 @@ inside Drupal 10.3+ / 11.
   automatically (the page refreshes every 15 seconds).
 - **Search:** file names are matched first (`Photo01.jpg` finds that file);
   otherwise Verify's AI search is used.
-- **Copy to Drupal:** click an asset to download the full-resolution original
-  into Drupal files (and a Media item, if the Media module is enabled).
+- **Copy to Drupal:** click an asset to copy it into Drupal files: images as a
+  web-sized preview (1000px), videos, audio and PDFs as the original file (and a Media item, if the Media module is enabled).
 
 ## Installation
 
@@ -42,7 +42,13 @@ read access to it (provided by Verify):
 composer config --global github-oauth.github.com <token>
 ```
 
-Updating later: `composer update joinverify/verify_dam`.
+Updating later:
+
+```
+composer update joinverify/verify_dam
+vendor/bin/drush updb -y
+vendor/bin/drush cr
+```
 
 Without Composer: download a release zip, place it at
 `web/modules/custom/verify_dam` and enable **Verify DAM** under *Extend*.
@@ -62,7 +68,8 @@ Then grant permissions under *People → Permissions*:
    saved, so you only do this once. Use the **Settings** button to view or
    disconnect it.
 3. Search with the search bar (Enter or the magnifying glass).
-4. Click an asset to copy it into Drupal. Copied assets show an **In Drupal**
+4. Click an asset to copy it into Drupal (images as a 1000px web version,
+   other files as the original). Copied assets show an **In Drupal**
    badge; clicking one again doesn't create a duplicate.
 
 Copied files are stored in `public://verify/YYYY-MM/` and listed under

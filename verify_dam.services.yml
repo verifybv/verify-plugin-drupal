@@ -1,7 +1,7 @@
 services:
   verify_dam.client:
     class: Drupal\verify_dam\VerifyClient
-    arguments: ['@http_client', '@config.factory', '@user.data', '@current_user', '@logger.factory', '@keyvalue']
+    arguments: ['@http_client', '@config.factory', '@user.data', '@current_user', '@logger.factory']
   verify_dam.importer:
     class: Drupal\verify_dam\AssetImporter
     arguments: ['@verify_dam.client', '@http_client', '@file_system', '@file_url_generator', '@entity_type.manager', '@module_handler', '@keyvalue', '@current_user']

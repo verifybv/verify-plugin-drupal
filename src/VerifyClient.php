@@ -3,7 +3,6 @@
 namespace Drupal\verify_dam;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\user\UserDataInterface;
@@ -30,9 +29,14 @@ class VerifyClient {
    * the settings existed).
    */
   /**
-   * Maximum number of assets remembered per API key.
+   * Type filters: key => MIME type prefix.
    */
-  protected const INDEX_LIMIT = 5000;
+  public const TYPES = [
+    'image' => 'image/',
+    'video' => 'video/',
+    'audio' => 'audio/',
+    'pdf' => 'application/pdf',
+  ];
 
   public const DEFAULT_BASE_URL = 'https://verify-api-gateway-9jozroz9.ew.gateway.dev';
 
@@ -42,7 +46,6 @@ class VerifyClient {
     protected UserDataInterface $userData,
     protected AccountProxyInterface $currentUser,
     protected LoggerChannelFactoryInterface $loggerFactory,
-    protected KeyValueFactoryInterface $keyValue,
   ) {}
 
   /**
@@ -77,122 +80,114 @@ class VerifyClient {
    * Checks an API key against the API. Throws on failure.
    */
   public function validateKey(string $key): void {
-    $this->search('', trim($key));
+    $this->postSearch(['value' => '', 'size' => 1], trim($key));
   }
 
   /**
    * Returns assets for the library view or a search.
    *
-   * Verify only offers an AI (semantic) search endpoint, whose results for an
-   * empty query are neither complete nor stable. To keep the library steady,
-   * every asset the API returns is remembered in a local index (per API key),
-   * and the library is always rendered from that index, newest first. Each
-   * refresh only adds new assets or updates existing ones.
-   *
-   * For a non-empty query, assets whose file name matches are returned first
-   * ("Photo01.jpg" finds exactly that file). Only when nothing matches by name
-   * do we fall back to Verify's semantic results.
+   * - Empty query: the newest assets first (one page).
+   * - Otherwise: file-name matches first ("TMR62" finds 24-08-15_TMR6200.jpg),
+   *   falling back to Verify's full search (AI/visual, description, metadata)
+   *   when no file name matches.
    *
    * @return array[]
    *   Normalized assets.
    *
    * @throws \Drupal\verify_dam\VerifyApiException
    */
-  public function search(string $query, ?string $apiKey = NULL): array {
+  public function search(string $query, ?string $type = NULL, ?string $apiKey = NULL): array {
     $apiKey = $apiKey ?? $this->getApiKey();
     if ($apiKey === NULL) {
       throw new VerifyApiException('No Verify API key connected.', 401);
     }
 
     $query = trim($query);
-    $index = $this->loadIndex($apiKey);
-    $max = (int) $this->config()->get('max_items') ?: 200;
+    $type = isset(self::TYPES[$type]) ? $type : NULL;
+    $limit = $this->pageSize();
+    // The API can't filter by type, so fetch the largest page when a type is
+    // selected and filter here.
+    $size = $type ? 100 : $limit;
 
     if ($query === '') {
-      $this->ingest($this->browse($apiKey), $index);
-      $this->saveIndex($apiKey, $index);
-      return array_slice($this->visible($this->sortNewest($index)), 0, $max);
+      $hits = $this->postSearch([
+        'value' => '',
+        'orderBy' => ['field' => 'creationDate', 'direction' => 'desc'],
+        'size' => $size,
+      ], $apiKey);
+      return $this->visible($this->normalizeAll($hits), $type, $limit);
     }
 
-    $semantic = $this->ingest($this->postSearch($query, $apiKey), $index);
-    $this->saveIndex($apiKey, $index);
-
-    // A file-name match wins, even if the filter then hides it: searching
-    // "Photo01.jpg" should never fall back to unrelated similar images.
-    $byName = $this->matchByName($query, $index);
-    return array_slice($this->visible($byName ?: $semantic), 0, $max);
+    $hits = $this->postSearch(['value' => $query, 'searchFields' => ['name'], 'size' => $size], $apiKey);
+    // The API doesn't match a full file name including its extension, so
+    // retry "Photo01.jpg" as "Photo01".
+    $base = $this->baseName($query);
+    if (!$hits && $base !== $query && $base !== '') {
+      $hits = $this->postSearch(['value' => $base, 'searchFields' => ['name'], 'size' => $size], $apiKey);
+    }
+    // Names with separators ("24-08-15_TMR6200") aren't matched as a whole:
+    // search on the longest part ("TMR6200") and keep only real matches.
+    if (!$hits && ($part = $this->longestPart($base)) !== NULL) {
+      $needle = mb_strtolower($base);
+      $hits = array_values(array_filter(
+        $this->postSearch(['value' => $part, 'searchFields' => ['name'], 'size' => 100], $apiKey),
+        fn($item) => is_array($item) && str_contains(mb_strtolower((string) ($item['name'] ?? '')), $needle),
+      ));
+    }
+    if (!$hits) {
+      $hits = $this->postSearch(['value' => $query, 'size' => $size], $apiKey);
+    }
+    return $this->visible($this->normalizeAll($hits), $type, $limit);
   }
 
   /**
-   * Applies the display filter (by default: only VERIFIED assets).
-   */
-  protected function visible(array $assets): array {
-    if ($this->config()->get('verified_only') === FALSE) {
-      return $assets;
-    }
-    return array_values(array_filter($assets, fn(array $a) => strtoupper((string) $a['status']) === 'VERIFIED'));
-  }
-
-  /**
-   * Fetches the "whole library" via an empty search (or "*" if rejected).
-   */
-  protected function browse(string $apiKey): array {
-    try {
-      return $this->postSearch('', $apiKey);
-    }
-    catch (VerifyApiException $e) {
-      if ($e->getCode() !== 400) {
-        throw $e;
-      }
-      return $this->postSearch('*', $apiKey);
-    }
-  }
-
-  /**
-   * Merges raw API items into the index.
+   * Number of assets requested per call (setting "Maximum assets shown").
    *
-   * @return array[]
-   *   The normalized, non-deleted items from this response, in API order.
+   * Capped at 100: larger pages make the API noticeably slower.
    */
-  protected function ingest(array $raw, array &$index): array {
-    $fresh = [];
-    foreach ($raw as $item) {
-      if (!is_array($item) || empty($item['id'])) {
-        continue;
-      }
-      $id = (string) $item['id'];
-      if (!empty($item['deleted'])) {
-        unset($index[$id]);
-        continue;
-      }
-      $asset = $this->normalize($item);
-      // Keep a known thumbnail if this response didn't include one.
-      if ($asset['thumbnail'] === NULL && isset($index[$id]['thumbnail'])) {
-        $asset['thumbnail'] = $index[$id]['thumbnail'];
-      }
-      $index[$id] = $asset;
-      $fresh[] = $asset;
-    }
-    return $fresh;
+  protected function pageSize(): int {
+    $max = (int) $this->config()->get('max_items') ?: 60;
+    return max(1, min(100, $max));
   }
 
   /**
-   * Name matches for a query: exact file name first, then partial matches.
+   * Keeps only VERIFIED assets (always), optionally of one type, up to $limit.
+   *
+   * The API has no status or type parameter, so both filters run here.
    */
-  protected function matchByName(string $query, array $index): array {
-    $q = mb_strtolower($query);
-    $qBase = $this->baseName($q);
-    $exact = $partial = [];
-    foreach ($index as $asset) {
-      $name = mb_strtolower($asset['name']);
-      if ($name === $q || $this->baseName($name) === $qBase) {
-        $exact[] = $asset;
-      }
-      elseif (str_contains($name, $q)) {
-        $partial[] = $asset;
+  protected function visible(array $assets, ?string $type = NULL, ?int $limit = NULL): array {
+    $prefix = $type ? self::TYPES[$type] : NULL;
+    $assets = array_values(array_filter($assets, fn(array $a) =>
+      strtoupper((string) $a['status']) === 'VERIFIED'
+      && ($prefix === NULL || str_starts_with(strtolower((string) $a['type']), $prefix))
+    ));
+    return $limit ? array_slice($assets, 0, $limit) : $assets;
+  }
+
+  /**
+   * Normalizes raw API items, skipping deleted or malformed ones.
+   */
+  protected function normalizeAll(array $raw): array {
+    $assets = [];
+    foreach ($raw as $item) {
+      if (is_array($item) && !empty($item['id']) && empty($item['deleted'])) {
+        $assets[] = $this->normalize($item);
       }
     }
-    return array_merge($this->sortNewest($exact), $this->sortNewest($partial));
+    return $assets;
+  }
+
+  /**
+   * Longest alphanumeric part of a name with separators, or NULL if the name
+   * has no separators ("24-08-15_TMR6200" -> "TMR6200").
+   */
+  protected function longestPart(string $name): ?string {
+    $parts = preg_split('/[^\p{L}\p{N}]+/u', $name, -1, PREG_SPLIT_NO_EMPTY);
+    if (count($parts) < 2) {
+      return NULL;
+    }
+    usort($parts, fn($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+    return mb_strlen($parts[0]) >= 3 ? $parts[0] : NULL;
   }
 
   /**
@@ -200,44 +195,6 @@ class VerifyClient {
    */
   protected function baseName(string $name): string {
     return preg_replace('/\.[a-z0-9]{1,5}$/i', '', $name);
-  }
-
-  /**
-   * Sorts assets newest first, with a stable tie-break.
-   */
-  protected function sortNewest(array $assets): array {
-    $assets = array_values($assets);
-    usort($assets, fn(array $a, array $b) =>
-      strcmp($b['created'] ?? '', $a['created'] ?? '')
-        ?: strcmp($a['name'], $b['name'])
-        ?: strcmp($a['id'], $b['id'])
-    );
-    return $assets;
-  }
-
-  /**
-   * Loads the remembered assets for an API key.
-   */
-  protected function loadIndex(string $apiKey): array {
-    $index = $this->keyValue->get('verify_dam.index')->get($this->indexCid($apiKey), []);
-    return is_array($index) ? $index : [];
-  }
-
-  /**
-   * Stores the remembered assets for an API key (capped in size).
-   */
-  protected function saveIndex(string $apiKey, array $index): void {
-    if (count($index) > self::INDEX_LIMIT) {
-      $index = array_column(array_slice($this->sortNewest($index), 0, self::INDEX_LIMIT), NULL, 'id');
-    }
-    $this->keyValue->get('verify_dam.index')->set($this->indexCid($apiKey), $index);
-  }
-
-  /**
-   * Cache id for an API key's index (the key itself is never stored).
-   */
-  protected function indexCid(string $apiKey): string {
-    return hash('sha256', $apiKey);
   }
 
   /**
@@ -259,12 +216,13 @@ class VerifyClient {
   }
 
   /**
-   * Performs the raw POST /asset/search call.
+   * Performs POST /asset/search and returns the list of hits.
    */
-  protected function postSearch(string $value, string $apiKey): array {
-    $data = $this->request('POST', '/asset/search', $apiKey, ['value' => $value]);
-    // Accept both a bare array and a wrapped {"assets": [...]} shape.
-    return array_is_list($data) ? $data : ($data['assets'] ?? $data['results'] ?? []);
+  protected function postSearch(array $body, string $apiKey): array {
+    $data = $this->request('POST', '/asset/search', $apiKey, $body);
+    // Current API: {"hits": [...], "totalHits": n, "from": n, "size": n}.
+    // Older API versions returned a bare list.
+    return array_is_list($data) ? $data : ($data['hits'] ?? []);
   }
 
   /**

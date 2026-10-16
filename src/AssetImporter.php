@@ -29,6 +29,18 @@ class AssetImporter {
     'pdf', 'zip', 'psd', 'ai', 'eps', 'raw', 'raf', 'cr2', 'nef', 'dng',
   ];
 
+  /**
+   * Preview file extensions => MIME types.
+   */
+  protected const IMAGE_TYPES = [
+    'jpg' => 'image/jpeg',
+    'jpeg' => 'image/jpeg',
+    'png' => 'image/png',
+    'webp' => 'image/webp',
+    'gif' => 'image/gif',
+    'avif' => 'image/avif',
+  ];
+
   public function __construct(
     protected VerifyClient $client,
     protected ClientInterface $httpClient,
@@ -54,14 +66,36 @@ class AssetImporter {
     }
 
     $asset = $this->client->getAsset($assetId);
-    $source = $asset['files']['original'] ?? $asset['files']['previewHighres'] ?? NULL;
+    $name = (string) ($asset['name'] ?? $assetId);
+    $mime = (string) ($asset['type'] ?? '');
+    $files = $asset['files'] ?? [];
+
+    // Images: copy Verify's web-sized preview (1000px) instead of the
+    // original, which can be tens of megabytes. Other types (video, audio,
+    // PDF) only have an image preview, so they keep the original file.
+    if (str_starts_with($mime, 'image/')) {
+      $source = $files['previewHighres'] ?? $files['previewLowres'] ?? $files['original'] ?? NULL;
+    }
+    else {
+      $source = $files['original'] ?? NULL;
+    }
     if (!is_string($source) || !str_starts_with($source, 'https://')) {
       throw new VerifyApiException('Verify did not provide a download link for this asset.', 502);
     }
 
-    $name = (string) ($asset['name'] ?? $assetId);
-    $file = $this->download($source, $this->safeFilename($name), (string) ($asset['type'] ?? ''));
-    $media = $this->createMedia($file, $name, (string) ($asset['type'] ?? ''));
+    // A preview may have a different format than the original (e.g. a JPEG
+    // preview of a PNG); name and type the file after what is downloaded.
+    $filename = $name;
+    if ($source !== ($files['original'] ?? NULL)) {
+      $ext = strtolower(pathinfo((string) parse_url($source, PHP_URL_PATH), PATHINFO_EXTENSION));
+      if (isset(self::IMAGE_TYPES[$ext])) {
+        $filename = pathinfo($name, PATHINFO_FILENAME) . '.' . $ext;
+        $mime = self::IMAGE_TYPES[$ext];
+      }
+    }
+
+    $file = $this->download($source, $this->safeFilename($filename), $mime);
+    $media = $this->createMedia($file, $name, $mime);
 
     $this->store()->set($assetId, [
       'fid' => (int) $file->id(),

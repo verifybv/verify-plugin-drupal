@@ -15,3 +15,10 @@ function verify_dam_uninstall(): void {
   // Imported files/media are kept; only the bookkeeping is removed.
   \Drupal::keyValue('verify_dam.imported')->deleteAll();
 }
+
+/**
+ * Remove the "Only show verified assets" setting (now always on).
+ */
+function verify_dam_update_10001(): void {
+  \Drupal::configFactory()->getEditable('verify_dam.settings')->clear('verified_only')->save();
+}
