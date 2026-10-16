@@ -1,105 +1,130 @@
-# Verify DAM
+<img src="media/logo_small.png" alt="Verify" width="96">
 
-Browse, search and copy assets from the [Verify](https://joinverify.com) DAM
-inside Drupal 10.3+ / 11.
+# Verify DAM for Drupal
 
-## Features
+Use your [Verify](https://joinverify.com) asset library directly inside Drupal.
+Browse and search your verified images, videos, audio and PDFs, and add them to
+your Drupal site with a single click — no downloading and re-uploading.
 
-- **One-time login:** each editor connects their own Verify API key once; it's
-  remembered on their Drupal account.
-- **Live library:** verified assets, newest first. New uploads in Verify show up
-  automatically (the page refreshes every 15 seconds).
-- **Search:** file names are matched first (`Photo01.jpg` finds that file);
-  otherwise Verify's AI search is used.
-- **Copy to Drupal:** click an asset to copy it into Drupal files: images as a
-  web-sized preview (1000px), videos, audio and PDFs as the original file (and a Media item, if the Media module is enabled).
+## What you get
+
+- **Your Verify library in Drupal** — newest assets first. New uploads in
+  Verify appear automatically, no page refresh needed.
+- **Only verified assets** — the library only ever shows assets with the status
+  *Verified*, so editors can't accidentally use unapproved content.
+- **Search** — find files by name (e.g. `TMR6200` or `24-08-15_TMR6200.jpg`),
+  or describe what's in the picture (e.g. `surfing`).
+- **Filter by type** — show all assets, or only images, videos, audio or PDFs.
+- **One-click copy to Drupal** — click an asset and it's added to your site.
+  Images are copied as a web-optimised version (1000 px), so pages stay fast;
+  videos, audio and PDFs are copied as the original file.
+- **No duplicates** — assets already copied are marked **In Drupal**.
+- **Personal, secure login** — each editor connects their own Verify API key
+  once. Keys stay on your server and are never shown in full.
+
+## Requirements
+
+- Drupal 10.3 or Drupal 11
+- PHP 8.1 or newer
+- A Verify account with an API key (ask your Verify account administrator, or
+  contact [info@joinverify.com](mailto:info@joinverify.com))
 
 ## Installation
 
-Add the Verify repository to your Drupal project's `composer.json`:
+### With Composer (recommended)
 
-```json
-"repositories": [
-    {
-        "type": "vcs",
-        "url": "https://github.com/verifybv/verify-plugin-drupal"
-    }
-]
-```
+Run these commands in the root of your Drupal project:
 
-Then install and enable the module:
-
-```
+```bash
+composer config repositories.verify vcs https://github.com/verifybv/verify-plugin-drupal
 composer require joinverify/verify_dam
 vendor/bin/drush en verify_dam -y
 vendor/bin/drush cr
 ```
 
-If the repository is private, first give Composer a GitHub token that has
-read access to it (provided by Verify):
+### Without Composer
 
-```
-composer config --global github-oauth.github.com <token>
-```
+1. Download the latest release ZIP from the
+   [Releases page](https://github.com/verifybv/verify-plugin-drupal/releases)
+   (or **Code → Download ZIP**).
+2. Unzip it, rename the folder to `verify_dam` and place it in
+   `web/modules/custom/`.
+3. In Drupal, go to **Extend**, tick **Verify DAM** and click **Install**.
 
-Updating later:
+## Getting started
 
-```
+1. **Give your editors access.** Go to **People → Permissions** and grant:
+
+   | Permission | Allows |
+   |---|---|
+   | Use the Verify DAM library | Connecting a Verify API key, browsing and searching |
+   | Copy Verify assets into Drupal | Adding assets to the site with a click |
+   | Administer Verify DAM settings | Changing the module settings (site admins) |
+
+2. **Open the library.** Click **Verify DAM** in the admin menu (or go to
+   `/verify`).
+3. **Connect your Verify account.** The first time, you're asked for your API
+   key. It's checked with Verify and remembered, so you only do this once.
+   You can view or disconnect it later via the **Settings** button.
+
+## Using the library
+
+- **Browse** — the newest verified assets are shown first.
+- **Search** — type a file name or a description and press Enter (or click the
+  magnifying glass). Clear the search box to return to the full library.
+- **Filter** — use the type menu next to the search bar to show only images,
+  videos, audio or PDFs.
+- **Add to Drupal** — click an asset. A spinner shows while it's being copied;
+  when it's done the asset is marked **In Drupal** and a message links to the
+  new file.
+
+Copied assets appear under **Content → Files** (and under **Content → Media**
+if Drupal's Media module is enabled), ready to use in your content.
+
+## Settings
+
+Site administrators can adjust the module under
+**Configuration → Media → Verify DAM**:
+
+- **Live refresh interval** — how often the library checks Verify for new
+  assets (default: every 15 seconds).
+- **Maximum assets shown** — how many assets the library and search show
+  (default 60, maximum 100).
+- **Verify API base URL** — only change this if Verify asks you to.
+
+## Updating
+
+```bash
 composer update joinverify/verify_dam
 vendor/bin/drush updb -y
 vendor/bin/drush cr
 ```
 
-Without Composer: download a release zip, place it at
-`web/modules/custom/verify_dam` and enable **Verify DAM** under *Extend*.
+Without Composer, replace the `verify_dam` folder with the new version, then
+visit `/update.php` on your site.
 
-Then grant permissions under *People → Permissions*:
+## Troubleshooting
 
-| Permission | Purpose |
+| Problem | Solution |
 |---|---|
-| Use the Verify DAM library | Connect an API key, browse and search |
-| Copy Verify assets into Drupal | Click-to-copy assets into Drupal |
-| Administer Verify DAM settings | Change module settings |
+| "This API key is not valid" | Check that you copied the complete key from Verify, then reconnect via **Settings**. |
+| "Could not reach the Verify API" | Your server can't reach Verify. Check its internet access or firewall, then try again. |
+| The library or filters don't look or work as expected after an update | Clear Drupal's caches (**Configuration → Performance → Clear all caches**, or `drush cr`) and reload the page. |
+| **Verify DAM** is missing from the menu | Make sure the module is enabled and your role has the *Use the Verify DAM library* permission. |
+| An asset you expect isn't shown | Only *Verified* assets are shown. Check the asset's status in Verify. |
 
-## Usage
+## Privacy and security
 
-1. Open **Verify DAM** in the admin menu (`/verify`).
-2. The first time, enter your Verify API key. It's checked against the API and
-   saved, so you only do this once. Use the **Settings** button to view or
-   disconnect it.
-3. Search with the search bar (Enter or the magnifying glass).
-4. Click an asset to copy it into Drupal (images as a 1000px web version,
-   other files as the original). Copied assets show an **In Drupal**
-   badge; clicking one again doesn't create a duplicate.
+- Your API key is stored on your own Drupal server, per user, and is never
+  sent to the browser.
+- All communication with Verify happens from your server over HTTPS.
+- Uninstalling the module removes all stored API keys. Assets already copied
+  into Drupal are kept.
 
-Copied files are stored in `public://verify/YYYY-MM/` and listed under
-*Content → Files* (and *Content → Media* when Media is enabled).
+## Support
 
-## Configuration
-
-*Configuration → Media → Verify DAM* (`/admin/config/media/verify`):
-
-- Verify API base URL
-- Live refresh interval
-- Maximum number of assets shown
-- Only show verified assets (on by default)
-
-## How it works
-
-- All Verify API calls happen server-side with the `x-api-key` header; API
-  keys never reach the browser. The settings page shows only the last 4
-  characters.
-- API keys are stored per user in Drupal's `user.data` table.
-- Verify's API offers AI search (max. 20 results per call) but no list
-  endpoint, so the module remembers every asset it has seen (key-value store,
-  per API key) to keep the library stable and complete over time.
-- Uninstalling removes stored API keys and the module's bookkeeping; copied
-  files and media items are kept.
-
-## Requirements
-
-- Drupal 10.3 or 11, PHP 8.1+
-- A Verify account and API key
+Questions or problems? Contact Verify at
+[info@joinverify.com](mailto:info@joinverify.com).
 
 ## License
 
